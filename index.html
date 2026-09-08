@@ -139,6 +139,19 @@
   .stu-fee{font-size:12px; color:var(--sub); margin-top:6px}
   .stu-fee b{color:#1fae68; font-size:13px}
   .detail-note{font-size:12px; color:var(--danger); margin-top:8px; line-height:1.6}
+  .bs-row{display:grid; grid-template-columns:minmax(0,1fr) 46px 70px 84px; gap:2px 8px; align-items:center; padding:8px 2px; border-bottom:1px dashed #eeeaf8; font-size:13px}
+  .bs-hd{color:var(--sub); font-size:11px; padding:7px 2px; font-weight:600; border-bottom:1px solid #e4e0f6}
+  .bs-row .bs-name{min-width:0; line-height:1.35}
+  .bs-row .bs-nm{display:block; font-size:13px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .bs-row .bs-og{display:block; font-size:10px; color:#a9a3c4; margin-top:1px}
+  .bs-row .bs-num{text-align:center; font-weight:700; color:#6b63e8; font-variant-numeric:tabular-nums}
+  .bs-row .bs-right{text-align:right}
+  .bs-row .bs-price{text-align:right; color:var(--sub); font-variant-numeric:tabular-nums}
+  .bs-row .bs-sub{text-align:right; font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums}
+  .bs-total{grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; border-bottom:none; padding:10px 2px 4px}
+  .bs-total-l{font-size:12px; color:var(--sub); font-weight:600}
+  .bs-total-r{font-size:16px; font-weight:800; color:#6b63e8; font-variant-numeric:tabular-nums}
+  .bs-note{font-size:11px; color:#a9a3c4; margin-top:2px; line-height:1.5}
 </style>
 </head>
 <body>
@@ -179,6 +192,7 @@
       <div class="chips" id="adminChips"></div>
     </div>
     <div id="adminList"></div>
+    <div class="panel" id="bookStatPanel" style="margin-top:12px"></div>
     <div class="panel" style="margin-top:12px">
       <div class="data-title"></div>
       <div class="actions-row">
@@ -424,13 +438,11 @@ function renderStudentCard(s){
   updateMini(s);
 
   const row=el("div","actions-row");
-  const dtl=el("button","btn sm ghost","费用明细");
-  dtl.onclick=()=>showDetail(s,"stu");
   const clr=el("button","btn sm ghost","清除备忘勾选");
   clr.onclick=()=>{lsSet(K_MEMO+s.id,[]); renderStudentCard(s); toast("已清除备忘");};
   const out=el("button","btn sm danger-soft","退出登录");
   out.onclick=logoutUI;
-  row.appendChild(dtl); row.appendChild(clr); row.appendChild(out);
+  row.appendChild(clr); row.appendChild(out);
   card.appendChild(row);
   wrap.appendChild(card);
   wrap.scrollIntoView({behavior:"smooth",block:"start"});
@@ -560,6 +572,46 @@ function renderAdminStats(st){
   mk(fmtMoney(classFee),"班级应交总费用");
 }
 
+function renderBookStat(){
+  const box=$("#bookStatPanel"); if(!box)return;
+  box.innerHTML="";
+  box.appendChild(el("div","data-title","教材订购统计 · 全班订购本数与折后金额"));
+  const recs=studentRecords();
+  const cnt={}; let totBooks=0, totFee=0;
+  recs.forEach(s=>s.books.forEach(b=>{ if(PRICE_MAP[b]){ cnt[b]=(cnt[b]||0)+1; } }));
+  const names=Object.keys(PRICE_MAP);
+  const hd=el("div","bs-row bs-hd");
+  hd.appendChild(el("span","bs-name","教材"));
+  hd.appendChild(el("span","bs-num","本数"));
+  hd.appendChild(el("span","bs-right","折后单价"));
+  hd.appendChild(el("span","bs-right","折后小计"));
+  box.appendChild(hd);
+  names.forEach(b=>{
+    const n=cnt[b]||0; const pm=PRICE_MAP[b];
+    const row=el("div","bs-row");
+    const nmc=el("div","bs-name");
+    const nm1=document.createElement("span"); nm1.className="bs-nm"; nm1.textContent=b;
+    nmc.appendChild(nm1);
+    const og=document.createElement("span"); og.className="bs-og"; og.textContent="原价 "+fmtMoney(pm.orig);
+    nmc.appendChild(og);
+    row.appendChild(nmc);
+    row.appendChild(el("span","bs-num",String(n)));
+    row.appendChild(el("span","bs-price",fmtMoney(pm.price)));
+    row.appendChild(el("span","bs-sub",fmtMoney(n*pm.price)));
+    totBooks+=n; totFee+=n*pm.price;
+    box.appendChild(row);
+  });
+  const tot=el("div","bs-row bs-total");
+  const tl=document.createElement("span"); tl.className="bs-total-l";
+  tl.textContent=names.length+" 本教材订购合计 · "+totBooks+" 本";
+  tot.appendChild(tl);
+  const tr=document.createElement("span"); tr.className="bs-total-r";
+  tr.textContent=fmtMoney(totFee);
+  tot.appendChild(tr);
+  box.appendChild(tot);
+  box.appendChild(el("div","bs-note","合计金额与全体学生应交费用总和（折后口径）一致，随编辑记录实时重算。"));
+}
+
 function adminChips(){
   const c=$("#adminChips"); c.innerHTML="";
   const items=[["all","全部"],["none","未领"],["part","部分"],["all_done","已领完"]];
@@ -662,6 +714,7 @@ function adminCardRefresh(s,st){
 function renderAdminList(){
   const st=adminState();
   renderAdminStats(st);
+  renderBookStat();
   const list=$("#adminList"); list.innerHTML="";
   const shown=filterRecs(st.recs,st);
   if(!shown.length){list.appendChild(el("div","panel","未找到符合条件的学生")); return;}

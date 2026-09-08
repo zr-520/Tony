@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Zos · 学生教材书单查询</title>
+<meta name="description" content="通信2631 班级学生个人教材书单查询">
+<style>
+  :root{
+    --card:rgba(255,255,255,.84); --ink:#33304f; --sub:#8a87a8;
+    --primary:#6f7bff; --line:rgba(255,255,255,.95);
+    --ok:#4ec48c; --warn:#f0a35e; --danger:#e2556e;
+    --radius:20px; --shadow:0 12px 30px rgba(140,125,230,.12);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent}
+  html{font-size:16px}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",sans-serif;
+    color:var(--ink); line-height:1.5; min-height:100vh; -webkit-font-smoothing:antialiased;
+    background:linear-gradient(150deg,#eef1ff 0%,#fdf0f7 46%,#ecf9f3 100%);
+    background-attachment:fixed;
+  }
+  .shell{max-width:560px; margin:0 auto; padding:0 14px calc(30px + var(--safe-bottom));}
+  button{font-family:inherit; cursor:pointer; border:none; background:none}
+  input{font-family:inherit; font-size:16px}
+  ::placeholder{color:#c4c2d8}
+
+  
+  .hero{position:relative; overflow:hidden; margin:14px 0 12px; padding:22px 18px 20px; border-radius:24px;
+    color:#fff; box-shadow:0 12px 26px rgba(150,120,230,.30);
+    background:linear-gradient(120deg,#9db0ff 0%,#b69bff 45%,#f09fd2 100%);}
+  .hero::before{content:""; position:absolute; width:190px; height:190px; border-radius:50%; background:rgba(255,255,255,.20); top:-74px; right:-46px}
+  .hero::after{content:""; position:absolute; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,.16); bottom:-56px; left:18px}
+  .hero>*{position:relative; z-index:1}
+  .hero .kicker{font-size:12px; letter-spacing:3px; opacity:.9; margin-bottom:6px}
+  .hero h1{font-size:23px; font-weight:700; letter-spacing:.5px}
+  .hero p{font-size:13.5px; opacity:.95; margin-top:6px; font-weight:500}
+
+  .panel{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);
+    backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); padding:18px; margin:12px 0;}
+
+  
+  label.f{display:block; font-size:13px; color:var(--sub); margin:10px 0 6px; font-weight:600}
+  .inp{width:100%; border:1.5px solid #e9e6fa; border-radius:13px; padding:12px 14px; background:rgba(255,255,255,.8); outline:none; transition:.18s; color:var(--ink)}
+  .inp:focus{border-color:var(--primary); background:#fff; box-shadow:0 0 0 4px rgba(111,123,255,.13)}
+  .btn{display:block; width:100%; padding:13px; border-radius:14px; font-size:16px; font-weight:700; color:#fff; letter-spacing:3px; transition:.18s; margin-top:16px;
+    background:linear-gradient(120deg,#7d8cff,#a07cff 55%,#cf84e2); box-shadow:0 8px 18px rgba(140,120,245,.28)}
+  .btn:active{transform:scale(.985)}
+  .btn.ghost{background:rgba(111,123,255,.10); color:#5f68ea; margin-top:10px; letter-spacing:0; box-shadow:none}
+  .btn.sm{width:auto; padding:6px 13px; font-size:13px; font-weight:600; border-radius:10px; letter-spacing:0; margin:0}
+  .btn.ok{background:linear-gradient(120deg,#5ed39a,#36b877); box-shadow:0 6px 14px rgba(78,196,140,.26)}
+  .btn.danger-soft{background:#fde7ec; color:var(--danger); box-shadow:none}
+  .hint{font-size:12px; color:var(--sub); margin-top:12px; text-align:center}
+  .error-banner{display:none; background:#fdecef; color:var(--danger); border-radius:13px; padding:11px 14px; font-size:13px; margin-top:12px}
+  .welcome{display:flex; align-items:center; gap:10px; background:rgba(111,123,255,.06); border:1px dashed #d6d4f6; border-radius:14px; padding:12px 14px; font-size:13px; color:var(--sub); margin-top:14px; line-height:1.7}
+
+  
+  .student-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px}
+  .student-head h2{font-size:19px}
+  .tag{display:inline-block; font-size:12px; padding:3px 10px; border-radius:999px; white-space:nowrap}
+  .tag.class{background:#eae7ff; color:#6a5ee0; font-weight:700}
+  .meta{color:var(--sub); font-size:13px; margin:4px 0 14px}
+  .total-chip{display:flex; align-items:center; justify-content:space-between; background:linear-gradient(120deg,rgba(157,176,255,.14),rgba(207,132,226,.12)); border:1px solid #ece8fb; border-radius:14px; padding:11px 14px; margin-bottom:12px; font-size:13px; color:var(--sub)}
+  .total-chip .num{color:#6b63e8; font-weight:800; font-size:18px}
+  .book-list{list-style:none}
+  .book-item{display:flex; align-items:center; gap:11px; padding:11px 4px; border-bottom:1px dashed #eeeaf8; font-size:15px}
+  .book-item:last-child{border-bottom:none}
+  .book-item .idx{color:#cfcbdd; font-size:12px; width:20px; flex:none; text-align:right}
+  .book-item .nm{flex:1}
+  .book-item.done .nm{color:#b5b2c8; text-decoration:line-through}
+  .cb{position:relative; width:22px; height:22px; flex:none; appearance:none; -webkit-appearance:none; border:2px solid #d6d3ea; border-radius:8px; background:#fff; transition:.15s; cursor:pointer}
+  .cb:checked{background:linear-gradient(135deg,#7d8cff,#b47bff); border-color:transparent}
+  .cb:checked::after{content:""; position:absolute; left:6px; top:2px; width:5px; height:10px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg)}
+  .progress-mini{font-size:12px; color:var(--sub); text-align:right; margin-top:10px}
+  .actions-row{display:flex; gap:8px; margin-top:14px}
+  .actions-row .btn{flex:1; margin:0}
+
+  
+  .stat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px}
+  .stat{background:rgba(255,255,255,.7); border:1px solid #eeeaf9; border-radius:14px; padding:11px 6px; text-align:center}
+  .stat .v{font-size:19px; font-weight:800; color:var(--ink)}
+  .stat .k{font-size:11px; color:var(--sub); margin-top:2px}
+  .toolbar{display:flex; gap:8px; margin-bottom:10px}
+  .toolbar .inp{flex:1; margin:0; padding:11px 13px}
+  .toolbar .btn{width:auto; margin:0; padding:11px 13px; font-size:13px}
+  .chips{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:none; margin-bottom:8px}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:none; font-size:13px; padding:7px 14px; border-radius:999px; background:rgba(255,255,255,.75); color:var(--sub); border:1px solid #edeaf7; transition:.15s}
+  .chip.active{background:linear-gradient(120deg,#7d8cff,#b07bff); color:#fff; border-color:transparent}
+  .stu-card{background:var(--card); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    padding:15px; margin:11px 0; border-left:5px solid #dedcf1}
+  .stu-card.part{border-left-color:var(--warn)}
+  .stu-card.all{border-left-color:var(--ok)}
+  .stu-card.none{border-left-color:#d5d3e6}
+  .stu-top{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap}
+  .stu-name{font-size:16px; font-weight:800}
+  .stu-id{font-size:12px; color:var(--sub); margin-top:2px}
+  .stu-sub{font-size:12px; color:var(--sub); margin-top:7px}
+  .stu-sub b{color:var(--ink)}
+  .stu-ops{display:flex; gap:6px; margin-top:12px; flex-wrap:wrap}
+  .bar{height:7px; border-radius:99px; background:#eeeaf8; margin-top:10px; overflow:hidden}
+  .bar i{display:block; height:100%; border-radius:99px; width:0; transition:.3s; background:linear-gradient(90deg,#6fd6a2,#34b877)}
+  .bar.warn-bar i{background:linear-gradient(90deg,#f7c184,#ef9a4c)}
+  .stu-books{margin-top:12px; border-top:1px dashed #eeeaf8; padding-top:6px; display:none}
+  .stu-card.open .stu-books{display:block}
+  .expand{color:var(--sub); font-size:12px; text-decoration:underline; margin-top:9px; display:inline-block}
+  .data-title{font-size:13px; color:var(--sub); margin-bottom:8px; font-weight:600}
+
+  
+  .overlay{position:fixed; inset:0; background:rgba(70,60,140,.35); display:none; align-items:flex-end; justify-content:center; z-index:50}
+  .overlay.show{display:flex}
+  .sheet{background:rgba(255,255,255,.96); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); width:100%; max-width:560px; border-radius:24px 24px 0 0; padding:8px 18px calc(22px + var(--safe-bottom)); max-height:88vh; overflow:auto; animation:up .22s ease}
+  @keyframes up{from{transform:translateY(40px); opacity:.4} to{transform:none; opacity:1}}
+  .sheet .drag{width:40px; height:4px; background:#e4e0f4; border-radius:99px; margin:6px auto 14px}
+  .sheet h3{font-size:17px; margin-bottom:4px}
+  .sheet .sub{font-size:12px; color:var(--sub); margin-bottom:12px}
+  .sheet label.f{margin-top:4px}
+  .btn-row{display:flex; gap:8px; margin-top:16px}
+  .btn-row .btn{flex:1; margin:0}
+
+  .hide{display:none !important}
+  .fade-in{animation:fade .3s ease}
+  @keyframes fade{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+  .toast{position:fixed; left:50%; bottom:calc(64px + var(--safe-bottom)); transform:translateX(-50%); background:rgba(60,55,100,.92); color:#fff; font-size:13px; padding:9px 20px; border-radius:99px; z-index:80; opacity:0; pointer-events:none; transition:.25s; white-space:nowrap}
+  .toast.show{opacity:1}
+  .footer{color:#b3aecb; font-size:11px; text-align:center; margin:20px 0 4px}
+  @media (min-width:600px){ .shell{max-width:640px} }
+
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+  .fee-chip{display:flex; align-items:center; justify-content:space-between; background:linear-gradient(120deg,#e3f9ed,#dcf1ff); border:1px solid #d7eedf; border-radius:14px; padding:11px 14px; margin-bottom:12px; font-size:13px; color:var(--sub)}
+  .fee-chip .num{color:#1fae68; font-weight:800; font-size:19px}
+  .fee-chip.warn{background:linear-gradient(120deg,#fff3dc,#ffe6ee); border-color:#f5e0b8}
+  .fee-chip.warn .num{color:#ef9a4c}
+  .book-main{flex:1; min-width:0}
+  .book-main .nm{display:block; line-height:1.45}
+  .pnote{font-size:11px; color:#a9a3c4; margin-top:2px; line-height:1.45}
+  .book-item.done .pnote{color:#c6c2d8}
+  .stu-fee{font-size:12px; color:var(--sub); margin-top:6px}
+  .stu-fee b{color:#1fae68; font-size:13px}
+  .detail-note{font-size:12px; color:var(--danger); margin-top:8px; line-height:1.6}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="hero">
+    <div class="kicker">Zos · 助手</div>
+    <h1>通信2631 · 教材书单</h1>
+    <p id="heroSub"></p>
+  </header>
+
+  
+  <section id="studentView">
+    <form id="queryForm" class="panel" autocomplete="off">
+      <label class="f" for="qName">姓名</label>
+      <input class="inp" id="qName" placeholder="请输入姓名" autocomplete="off">
+      <label class="f" for="qId">学号</label>
+      <input class="inp" id="qId" placeholder="请输入学号" autocomplete="off" inputmode="numeric">
+      <button class="btn" type="submit" id="queryBtn">登录 · 查询书单</button>
+      <div class="error-banner" id="queryError"></div>
+      <div class="hint" id="lastLoginHint"></div>
+    </form>
+    <div class="panel welcome" id="welcomeBox">
+      使用说明：输入本人姓名与学号，即可查看自己的教材清单，并可逐本勾选备忘。
+    </div>
+    <div id="studentResult"></div>
+  </section>
+
+  
+  <section id="adminView" class="hide">
+    <div class="panel">
+      <div class="stat-grid" id="adminStats"></div>
+      <div class="toolbar">
+        <input class="inp" id="adminSearch" placeholder="搜索姓名 / 学号">
+        <button class="btn ghost" id="expandAllBtn" type="button">展开</button>
+        <button class="btn danger-soft" id="adminExitBtn" type="button">退出管理</button>
+      </div>
+      <div class="chips" id="adminChips"></div>
+    </div>
+    <div id="adminList"></div>
+    <div class="panel" style="margin-top:12px">
+      <div class="data-title"></div>
+      <div class="actions-row">
+        <button class="btn sm ghost" id="exportBtn" type="button" style="flex:1;text-align:center">导出记录</button>
+        <button class="btn sm ghost" id="importBtn" type="button" style="flex:1;text-align:center">导入记录</button>
+        <button class="btn sm danger-soft" id="resetBtn" type="button" style="flex:1;text-align:center">恢复默认</button>
+      </div>
+      <button class="btn ghost" id="copySummaryBtn" type="button">复制领书汇总</button>
+    </div>
+  </section>
+
+  
+  <section id="detailView" class="hide">
+    <div class="panel" id="detailPanel"></div>
+  </section>
+
+  <div class="footer">数据可离线使用 · 勾选记录仅保存在本机浏览器</div>
+</div>
+
+<div class="overlay" id="editOverlay">
+  <div class="sheet">
+    <div class="drag"></div>
+    <h3>编辑学生书目</h3>
+    <div class="sub" id="editSub"></div>
+    <label class="f" for="editName">姓名</label>
+    <input class="inp" id="editName">
+    <label class="f" for="editClass">班级</label>
+    <input class="inp" id="editClass">
+    <label class="f">书目（勾选即保留该教材）</label>
+    <div id="editBooks"></div>
+    <label class="f">自定义添加书名</label>
+    <div style="display:flex;gap:8px">
+      <input class="inp" id="editCustomBook" placeholder="输入新书名，点击添加" style="flex:1">
+      <button class="btn sm ghost" type="button" id="addCustomBtn" style="padding:11px 14px">添加</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn danger-soft" id="deleteStuBtn" type="button">删除该生</button>
+      <button class="btn ok" id="saveEditBtn" type="button" style="flex:1.6">保存修改</button>
+    </div>
+    <button class="btn ghost" id="cancelEditBtn" type="button">取消</button>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="application/json" style="display:none">
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+const RAW_STUDENTS = [
+  {"name":"李志博","id":"2620173117","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","新编大学体育与健康教程","中国式现代化江苏新实践","马克思主义基本原理","高校形势与政策","视听说教程（学生用书）","综合教程（学生用书）","大学生体质健康测试指导手册","C++程序设计","5G移动通信技术"]},
+  {"name":"吕文博","id":"2620173111","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","新编大学体育与健康教程","高校形势与政策","5G移动通信技术"]},
+  {"name":"朱印熳","id":"2620173112","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","新编大学体育与健康教程","中国式现代化江苏新实践","马克思主义基本原理","高校形势与政策","视听说教程（学生用书）","综合教程（学生用书）","大学生体质健康测试指导手册","C++程序设计","5G移动通信技术"]},
+  {"name":"刘志伟","id":"2620173108","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","新编大学体育与健康教程","中国式现代化江苏新实践","马克思主义基本原理","高校形势与政策","视听说教程（学生用书）","综合教程（学生用书）","大学生体质健康测试指导手册","C++程序设计","5G移动通信技术"]},
+  {"name":"冯季语","id":"2620173107","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","高校形势与政策","综合教程（学生用书）","5G移动通信技术"]},
+  {"name":"耿晨月","id":"2620173134","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","新编大学体育与健康教程","高校形势与政策","视听说教程（学生用书）","5G移动通信技术"]},
+  {"name":"陈芳","id":"2620173125","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","综合教程（学生用书）"]},
+  {"name":"薛晨晨","id":"2620173143","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","高校形势与政策","5G移动通信技术"]},
+  {"name":"周雨婷","id":"2620173129","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","新编大学体育与健康教程","中国式现代化江苏新实践","马克思主义基本原理","高校形势与政策","视听说教程（学生用书）","综合教程（学生用书）","大学生体质健康测试指导手册","C++程序设计","5G移动通信技术"]},
+  {"name":"杨乐天","id":"2620173120","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","高校形势与政策"]},
+  {"name":"邓言超","id":"2620173103","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","新编大学体育与健康教程","中国式现代化江苏新实践","马克思主义基本原理","高校形势与政策","视听说教程（学生用书）","综合教程（学生用书）","C++程序设计","5G移动通信技术"]},
+  {"name":"陈志远","id":"2620173124","class":"通信2631","books":["数据通信综合实训（学生指导书）"]},
+  {"name":"章弟","id":"2620173138","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","新编大学体育与健康教程","中国式现代化江苏新实践","马克思主义基本原理","高校形势与政策","视听说教程（学生用书）","综合教程（学生用书）","大学生体质健康测试指导手册","C++程序设计","5G移动通信技术"]},
+  {"name":"洪俊豪","id":"2620173132","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","马克思主义基本原理","高校形势与政策","视听说教程（学生用书）","综合教程（学生用书）","C++程序设计","5G移动通信技术"]},
+  {"name":"王明武","id":"2620173104","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","新编大学体育与健康教程","中国式现代化江苏新实践","马克思主义基本原理","高校形势与政策","视听说教程（学生用书）","综合教程（学生用书）","大学生体质健康测试指导手册","C++程序设计","5G移动通信技术"]},
+  {"name":"卢晨旭","id":"2620173106","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","中国式现代化江苏新实践","高校形势与政策","综合教程（学生用书）","5G移动通信技术"]},
+  {"name":"郭子衡","id":"2620173135","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","高校形势与政策","5G移动通信技术"]},
+  {"name":"蔡忱君","id":"2620173142","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）"]},
+  {"name":"李婉娣","id":"2620173119","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","新编大学体育与健康教程","中国式现代化江苏新实践","马克思主义基本原理","高校形势与政策","视听说教程（学生用书）","综合教程（学生用书）","大学生体质健康测试指导手册","C++程序设计","5G移动通信技术"]},
+  {"name":"朱志坚","id":"2620173113","class":"通信2631","books":["数据通信综合实训（学生指导书）"]},
+  {"name":"陈星","id":"2620173126","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","新编大学体育与健康教程","中国式现代化江苏新实践","马克思主义基本原理","高校形势与政策","视听说教程（学生用书）","综合教程（学生用书）","大学生体质健康测试指导手册","C++程序设计","5G移动通信技术"]},
+  {"name":"张腾","id":"2620173116","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","高校形势与政策"]},
+  {"name":"周泳佶","id":"2620173128","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","视听说教程（学生用书）","综合教程（学生用书）","C++程序设计","5G移动通信技术"]},
+  {"name":"尹成章","id":"2620173102","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","新编大学体育与健康教程","中国式现代化江苏新实践","马克思主义基本原理","高校形势与政策","视听说教程（学生用书）","综合教程（学生用书）","大学生体质健康测试指导手册","5G移动通信技术"]},
+  {"name":"张云艳","id":"26201731114","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","高校形势与政策","5G移动通信技术"]},
+  {"name":"彭浩然","id":"2620173141","class":"通信2631","books":["数据通信综合实训（学生指导书）"]},
+  {"name":"黄子怡","id":"2620173140","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）"]},
+  {"name":"张永轶","id":"2620173115","class":"通信2631","books":["数据通信综合实训（学生指导书）"]},
+  {"name":"刘苏杨","id":"2620173109","class":"通信2631","books":["数据通信综合实训（学生指导书）"]},
+  {"name":"胡宇恒","id":"2620173130","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","5G移动通信技术"]},
+  {"name":"杨诚","id":"2620173121","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","高校形势与政策","综合教程（学生用书）"]},
+  {"name":"沙香含","id":"2620173123","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","高校形势与政策","5G移动通信技术"]},
+  {"name":"鹿文涛","id":"2620173139","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","新编大学体育与健康教程","大学生体质健康测试指导手册"]},
+  {"name":"顾啟业","id":"2620173137","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","新编大学体育与健康教程","中国式现代化江苏新实践","马克思主义基本原理","高校形势与政策","视听说教程（学生用书）","综合教程（学生用书）","大学生体质健康测试指导手册","C++程序设计","5G移动通信技术"]},
+  {"name":"徐晓悦","id":"2620173133","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","高校形势与政策","综合教程（学生用书）","5G移动通信技术"]},
+  {"name":"李京","id":"2620173118","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","视听说教程（学生用书）","综合教程（学生用书）","5G移动通信技术"]},
+  {"name":"王洋洋","id":"2620173105","class":"通信2631","books":["数据通信综合实训（学生指导书）"]},
+  {"name":"单海彤","id":"2620173127","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","马克思主义基本原理","综合教程（学生用书）","C++程序设计","5G移动通信技术"]},
+  {"name":"郭斌","id":"2620173136","class":"通信2631","books":["数据通信综合实训（学生指导书）"]},
+  {"name":"胡康敏","id":"2620173131","class":"通信2631","books":["数据通信综合实训（学生指导书）"]},
+  {"name":"郭斌","id":"2620173631","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","5G移动通信技术"]},
+  {"name":"杨馨雨","id":"2620173122","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","5G移动通信技术"]},
+  {"name":"丁传建","id":"2620173101","class":"通信2631","books":["信号与系统","数据通信综合实训（学生指导书）","数据通信技术","马克思主义基本原理","高校形势与政策","视听说教程（学生用书）","综合教程（学生用书）","C++程序设计","5G移动通信技术"]}
+];
+
+const PRICE_MAP = {
+  "信号与系统":{orig:48.7,price:38.96},
+  "数据通信综合实训（学生指导书）":{orig:5,price:4},
+  "数据通信技术":{orig:44.8,price:35.84},
+  "5G移动通信技术":{orig:50.5,price:40.4},
+  "C++程序设计":{orig:69.9,price:53.12},
+  "大学生体质健康测试指导手册":{orig:38,price:28.88},
+  "综合教程（学生用书）":{orig:69,price:52.44},
+  "视听说教程（学生用书）":{orig:53,price:40.28},
+  "高校形势与政策":{orig:38,price:28.88},
+  "马克思主义基本原理":{orig:23,price:23},
+  "中国式现代化江苏新实践":{orig:45,price:34.2},
+  "新编大学体育与健康教程":{orig:57,price:43.32}
+};
+function fmtMoney(v){return "¥"+Number(v).toFixed(2);}
+function bookPrice(b){return PRICE_MAP[b]||null;}
+function feeStat(books){
+  let sum=0, miss=[];
+  (books||[]).forEach(b=>{const p=bookPrice(b); if(p)sum+=p.price; else miss.push(b);});
+  return {sum:sum, miss:miss};
+}
+function booksFee(books){return feeStat(books).sum;}
+
+const ADMIN = {name:"Zos", id:"666666"};
+const HERO_DEFAULT = "输入姓名与学号，即可查询个人教材清单";
+
+const K_MEMO="bq_memo_", K_CLAIM="bq_claim_", K_EDIT="bq_edit_", K_LAST="bq_lastlogin";
+function lsGet(k,fb){try{const v=localStorage.getItem(k); return v==null?fb:JSON.parse(v);}catch(e){return fb;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){toast("存储失败：请检查浏览器隐私设置");}}
+
+function getEdits(){const v=lsGet(K_EDIT+"map",{}); return (v&&typeof v==="object"&&!Array.isArray(v))?v:{};}
+function setEdits(o){lsSet(K_EDIT+"map",o);}
+
+function studentRecords(){
+  const edits=getEdits();
+  return RAW_STUDENTS.map(s=>{
+    const e=edits[s.id];
+    if(!e||typeof e!=="object")return s;
+    if(!Array.isArray(e.books))return s;
+    const name=(typeof e.name==="string"&&e.name.trim())?e.name:s.name;
+    const cls=(typeof e.class==="string"&&e.class.trim())?e.class:s.class;
+    return {name:name, id:s.id, class:cls, books:e.books};
+  });
+}
+
+const $=s=>document.querySelector(s);
+function toast(msg){const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),1600);}
+function el(tag,cls,txt){const n=document.createElement(tag); if(cls)n.className=cls; if(txt!=null)n.textContent=txt; return n;}
+
+function doLogin(){
+  const name=$("#qName").value.trim();
+  const id=$("#qId").value.trim();
+  const box=$("#queryError"); box.style.display="none";
+  if(!name||!id){box.textContent="请输入姓名和学号后再登录"; box.style.display="block"; return;}
+  if(name===ADMIN.name && id===ADMIN.id){ enterAdmin(); return; }
+  const rec=studentRecords().find(s=>s.name===name && s.id===id);
+  if(!rec){
+    const nameHit=studentRecords().find(s=>s.name===name);
+    box.textContent=nameHit?("姓名正确，但学号与名单不一致，请核对后重试"):"未在名单中找到该学生，请确认姓名与学号无误";
+    box.style.display="block";
+    $("#studentResult").innerHTML="";
+    return;
+  }
+  lsSet(K_LAST,{name,id});
+  $("#lastLoginHint").innerHTML="";
+  $("#welcomeBox").classList.add("hide");
+  $("#heroSub").textContent="已登录："+name+"（"+rec.class+"）";
+  renderStudentCard(rec);
+}
+
+function logoutUI(){
+  $("#studentResult").innerHTML="";
+  $("#qName").value=""; $("#qId").value="";
+  $("#heroSub").textContent=HERO_DEFAULT;
+  $("#welcomeBox").classList.remove("hide");
+  $("#queryError").style.display="none";
+  toast("已退出登录");
+}
+
+$("#queryForm").addEventListener("submit",e=>{e.preventDefault(); doLogin();});
+(function(){
+  const last=lsGet(K_LAST,null);
+  if(last){
+    $("#lastLoginHint").textContent="上次登录："+last.name+"（"+last.id+"），点击快速登录";
+    $("#lastLoginHint").style.cursor="pointer";
+    $("#lastLoginHint").onclick=()=>{$("#qName").value=last.name; $("#qId").value=last.id; doLogin();};
+  }
+})();
+
+function renderStudentCard(s){
+  try{
+  let memo=lsGet(K_MEMO+s.id,[]);
+  if(!Array.isArray(memo)) memo=[];
+  const wrap=$("#studentResult"); wrap.innerHTML="";
+  const card=el("div","panel fade-in");
+
+  const head=el("div","student-head");
+  head.appendChild(el("h2",null,s.name));
+  const t=el("span","tag class"); t.textContent=s.class; head.appendChild(t);
+  card.appendChild(head);
+
+  const meta=el("div","meta");
+  const mn=document.createElement("div"); mn.textContent="学号："+s.id;
+  meta.appendChild(mn);
+  card.appendChild(meta);
+
+  const chip=el("div","total-chip");
+  chip.appendChild(el("span",null,"个人教材共计"));
+  chip.appendChild(el("span","num",s.books.length+" 本"));
+  card.appendChild(chip);
+
+  const fs=feeStat(s.books);
+  const fee=el("div","fee-chip"+(fs.miss.length?" warn":""));
+  fee.appendChild(el("span",null,"应交教材费用合计"));
+  fee.appendChild(el("span","num",fmtMoney(fs.sum)));
+  card.appendChild(fee);
+
+  const ul=el("ul","book-list");
+  s.books.forEach((b,i)=>{
+    const li=el("li","book-item");
+    li.appendChild(el("span","idx",(i+1)+"."));
+    const cb=document.createElement("input");
+    cb.type="checkbox"; cb.className="cb"; cb.checked=memo.includes(b);
+    cb.addEventListener("change",()=>{
+      let arr=lsGet(K_MEMO+s.id,[]);
+      if(!Array.isArray(arr)) arr=[];
+      if(cb.checked){ if(!arr.includes(b)) arr.push(b);} else {arr=arr.filter(x=>x!==b);}
+      lsSet(K_MEMO+s.id,arr);
+      li.classList.toggle("done",cb.checked);
+      updateMini(s);
+    });
+    const main=el("div","book-main");
+    main.appendChild(el("span","nm",b));
+    const p=bookPrice(b);
+    main.appendChild(el("div","pnote",p?("原价 "+fmtMoney(p.orig)+" · 折后 "+fmtMoney(p.price)):"价格待定 · 计 ¥0.00"));
+    li.appendChild(cb); li.appendChild(main);
+    if(memo.includes(b)) li.classList.add("done");
+    ul.appendChild(li);
+  });
+  card.appendChild(ul);
+
+  const mini=el("div","progress-mini",""); mini.id="miniProg"; card.appendChild(mini);
+  function updateMini(ss){
+    let m=lsGet(K_MEMO+ss.id,[]);
+    if(!Array.isArray(m)) m=[];
+    mini.textContent="备忘已勾选 "+m.length+" / "+ss.books.length+" 本";
+  }
+  updateMini(s);
+
+  const row=el("div","actions-row");
+  const dtl=el("button","btn sm ghost","费用明细");
+  dtl.onclick=()=>showDetail(s,"stu");
+  const clr=el("button","btn sm ghost","清除备忘勾选");
+  clr.onclick=()=>{lsSet(K_MEMO+s.id,[]); renderStudentCard(s); toast("已清除备忘");};
+  const out=el("button","btn sm danger-soft","退出登录");
+  out.onclick=logoutUI;
+  row.appendChild(dtl); row.appendChild(clr); row.appendChild(out);
+  card.appendChild(row);
+  wrap.appendChild(card);
+  wrap.scrollIntoView({behavior:"smooth",block:"start"});
+  }catch(err){
+    const ewrap=$("#studentResult"); ewrap.innerHTML="";
+    const box=el("div","panel fade-in");
+    const hd=el("div","student-head"); hd.appendChild(el("h2",null,s.name)); box.appendChild(hd);
+    box.appendChild(el("div","meta","渲染出错："+((err&&err.message)?err.message:String(err))+"。可清除本地记录后重试。"));
+    const row=el("div","actions-row");
+    const clr=el("button","btn sm ghost","清除本地记录并重试");
+    clr.onclick=()=>{try{localStorage.removeItem(K_MEMO+s.id); localStorage.removeItem(K_EDIT+"map");}catch(e){} renderStudentCard(s); toast("已清除本地记录，重新渲染");};
+    const out=el("button","btn sm danger-soft","退出登录");
+    out.onclick=logoutUI;
+    row.appendChild(clr); row.appendChild(out);
+    box.appendChild(row);
+    ewrap.appendChild(box);
+    ewrap.scrollIntoView({behavior:"smooth",block:"start"});
+  }
+}
+
+let detailFrom=null;
+function showDetail(s,from){
+  detailFrom=(from==="admin")?"admin":"stu";
+  $("#studentView").classList.add("hide");
+  $("#adminView").classList.add("hide");
+  const box=$("#detailPanel"); box.innerHTML="";
+
+  const head=el("div","student-head");
+  head.appendChild(el("h2",null,s.name));
+  const t=el("span","tag class"); t.textContent=s.class; head.appendChild(t);
+  box.appendChild(head);
+  box.appendChild(el("div","meta","学号："+s.id+" · 通信2631 教材费用明细"));
+
+  const fs=feeStat(s.books);
+  const fee=el("div","fee-chip"+(fs.miss.length?" warn":""));
+  fee.appendChild(el("span",null,"应交教材费用合计（折后价）"));
+  fee.appendChild(el("span","num",fmtMoney(fs.sum)));
+  box.appendChild(fee);
+
+  let memo=lsGet(K_MEMO+s.id,[]);
+  if(!Array.isArray(memo)) memo=[];
+  const ul=el("ul","book-list");
+  let miniNote=null;
+  s.books.forEach((b,i)=>{
+    const li=el("li","book-item");
+    li.appendChild(el("span","idx",(i+1)+"."));
+    const cb=document.createElement("input"); cb.type="checkbox"; cb.className="cb"; cb.checked=memo.includes(b);
+    cb.addEventListener("change",()=>{
+      let arr=lsGet(K_MEMO+s.id,[]);
+      if(!Array.isArray(arr)) arr=[];
+      if(cb.checked){ if(!arr.includes(b)) arr.push(b);} else {arr=arr.filter(x=>x!==b);}
+      lsSet(K_MEMO+s.id,arr);
+      li.classList.toggle("done",cb.checked);
+      if(miniNote){let m=lsGet(K_MEMO+s.id,[]); if(!Array.isArray(m))m=[]; miniNote.textContent="备忘已勾选 "+m.length+" / "+s.books.length+" 本";}
+    });
+    const main=el("div","book-main");
+    main.appendChild(el("span","nm",b));
+    const p=bookPrice(b);
+    main.appendChild(el("div","pnote",p?("原价 "+fmtMoney(p.orig)+" · 折后 "+fmtMoney(p.price)):"价格待定 · 计 ¥0.00"));
+    li.appendChild(cb); li.appendChild(main);
+    if(memo.includes(b)) li.classList.add("done");
+    ul.appendChild(li);
+  });
+  box.appendChild(ul);
+  miniNote=el("div","progress-mini","");
+  miniNote.textContent="备忘已勾选 "+memo.length+" / "+s.books.length+" 本";
+  box.appendChild(miniNote);
+
+  if(fs.miss.length){
+    box.appendChild(el("div","detail-note","提示：以下 "+(fs.miss.length)+" 本未匹配到定价，已按 ¥0.00 计入："+fs.miss.join("、")));
+  }
+
+  const row=el("div","actions-row");
+  const back=el("button","btn sm ghost","← 返回");
+  back.onclick=()=>{
+    $("#detailView").classList.add("hide");
+    if(detailFrom==="admin"){ $("#adminView").classList.remove("hide"); renderAdmin(); }
+    else{
+      $("#studentView").classList.remove("hide");
+      const rec=studentRecords().find(x=>x.id===s.id);
+      if(rec) renderStudentCard(rec);
+    }
+  };
+  const clr=el("button","btn sm ghost","清除备忘勾选");
+  clr.onclick=()=>{lsSet(K_MEMO+s.id,[]); showDetail(s,detailFrom); toast("已清除备忘");};
+  row.appendChild(back); row.appendChild(clr);
+  box.appendChild(row);
+
+  $("#detailView").classList.remove("hide");
+  $("#detailView").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+let adminFilter="all", adminKw="", allOpen=false;
+function enterAdmin(){
+  $("#studentView").classList.add("hide");
+  $("#adminView").classList.remove("hide");
+  $("#heroSub").textContent="班助管理模式 · 全体学生书目与领书进度";
+  renderAdmin();
+  toast("已进入班助管理模式");
+}
+$("#adminExitBtn").onclick=()=>{
+  $("#adminView").classList.add("hide");
+  $("#studentView").classList.remove("hide");
+  logoutUI();
+};
+
+function adminState(){
+  const recs=studentRecords();
+  const claimMap={};
+  recs.forEach(s=>{const v=lsGet(K_CLAIM+s.id,[]); claimMap[s.id]=Array.isArray(v)?v:[];});
+  return {recs,claimMap};
+}
+function claimCount(s,arr){return s.books.filter(b=>arr.includes(b)).length;}
+function stateOf(s,arr){const n=claimCount(s,arr); if(n===0)return "none"; if(n>=s.books.length)return "all"; return "part";}
+
+function renderAdminStats(st){
+  const {recs}=st; let doneAll=0, bookTotal=0, bookGot=0, classFee=0;
+  recs.forEach(s=>{const arr=st.claimMap[s.id]; const n=claimCount(s,arr);
+    bookTotal+=s.books.length; bookGot+=n; if(n>=s.books.length)doneAll++;
+    classFee+=booksFee(s.books);
+  });
+  const g=$("#adminStats"); g.innerHTML="";
+  const mk=(v,k)=>{const d=el("div","stat"); d.appendChild(el("div","v",String(v))); d.appendChild(el("div","k",k)); g.appendChild(d);};
+  mk(recs.length,"学生总数");
+  mk(doneAll,"已领完");
+  mk(bookTotal?Math.round(bookGot/bookTotal*100)+"%":"0%","教材发放进度");
+  mk(fmtMoney(classFee),"班级应交总费用");
+}
+
+function adminChips(){
+  const c=$("#adminChips"); c.innerHTML="";
+  const items=[["all","全部"],["none","未领"],["part","部分"],["all_done","已领完"]];
+  items.forEach(([k,txt])=>{
+    const b=el("button","chip"+(adminFilter===k?" active":""),txt);
+    b.onclick=()=>{adminFilter=k; renderAdminList();};
+    c.appendChild(b);
+  });
+}
+
+function filterRecs(recs,st){
+  const kw=adminKw.trim().toLowerCase();
+  return recs.filter(s=>{
+    const stt=stateOf(s,st.claimMap[s.id]);
+    if(adminFilter==="none"&&stt!=="none")return false;
+    if(adminFilter==="part"&&stt!=="part")return false;
+    if(adminFilter==="all_done"&&stt!=="all")return false;
+    if(kw && !(s.name.toLowerCase().includes(kw)||s.id.includes(kw)))return false;
+    return true;
+  });
+}
+
+function adminCard(s,st){
+  const arr=st.claimMap[s.id];
+  const stt=stateOf(s,arr); const got=claimCount(s,arr);
+  const card=el("div","stu-card "+stt+" fade-in");
+  card.dataset.id=s.id;
+  if(allOpen) card.classList.add("open");
+
+  const top=el("div","stu-top");
+  const left=el("div");
+  left.appendChild(el("div","stu-name",s.name+"（"+(stt==="all"?"已领完":stt==="part"?"部分":"未领")+"）"));
+  const idl=el("div","stu-id","学号："+s.id);
+  left.appendChild(idl);
+  const cls=el("span","tag class",s.class);
+  top.appendChild(left); top.appendChild(cls);
+  card.appendChild(top);
+
+  const sub=el("div","stu-sub");
+  const b1=document.createElement("b"); b1.textContent="共 "+s.books.length+" 本教材 · 已领 "+got+" 本";
+  sub.appendChild(b1);
+  const fs=feeStat(s.books);
+  const feeL=document.createElement("div"); feeL.className="stu-fee";
+  feeL.appendChild(document.createTextNode("应交教材费用："));
+  const feeB=document.createElement("b"); feeB.textContent=fmtMoney(fs.sum); feeL.appendChild(feeB);
+  if(fs.miss.length) feeL.appendChild(document.createTextNode("（"+(fs.miss.length)+" 本未定价）"));
+  sub.appendChild(feeL);
+  card.appendChild(sub);
+
+  const bar=el("div","bar"+(stt==="part"?" warn-bar":""));
+  const ii=document.createElement("i"); ii.style.width=(s.books.length?Math.round(got/s.books.length*100):0)+"%";
+  bar.appendChild(ii); card.appendChild(bar);
+
+  const booksWrap=el("div","stu-books");
+  const ul=el("ul","book-list");
+  s.books.forEach((b,idx)=>{
+    const li=el("li","book-item");
+    li.appendChild(el("span","idx",(idx+1)+"."));
+    const cb=document.createElement("input");
+    cb.type="checkbox"; cb.className="cb"; cb.checked=arr.includes(b);
+    cb.addEventListener("change",()=>{
+      let claim=lsGet(K_CLAIM+s.id,[]);
+      if(!Array.isArray(claim)) claim=[];
+      if(cb.checked){ if(!claim.includes(b)) claim.push(b);} else {claim=claim.filter(x=>x!==b);}
+      lsSet(K_CLAIM+s.id,claim);
+      st.claimMap[s.id]=claim;
+      adminCardRefresh(s,st);
+      renderAdminStats(st);
+    });
+    const nm=el("span","nm",b);
+    li.appendChild(cb); li.appendChild(nm);
+    ul.appendChild(li);
+  });
+  booksWrap.appendChild(ul);
+
+  const ops=el("div","stu-ops");
+  const btnAll=el("button","btn sm ok","全部已领");
+  btnAll.onclick=()=>{const claim=s.books.slice(); lsSet(K_CLAIM+s.id,claim); st.claimMap[s.id]=claim; adminCardRefresh(s,st); renderAdminStats(st); toast("已标记全部领取");};
+  const btnNone=el("button","btn sm ghost","清空");
+  btnNone.onclick=()=>{lsSet(K_CLAIM+s.id,[]); st.claimMap[s.id]=[]; adminCardRefresh(s,st); renderAdminStats(st);};
+  const btnEdit=el("button","btn sm ghost","编辑");
+  btnEdit.onclick=()=>openEdit(s.id);
+  const btnDet=el("button","btn sm ghost","费用明细");
+  btnDet.onclick=()=>showDetail(s,"admin");
+  ops.appendChild(btnAll); ops.appendChild(btnNone); ops.appendChild(btnDet); ops.appendChild(btnEdit);
+  booksWrap.appendChild(ops);
+
+  const exp=el("button","expand", allOpen?"收起书目":"查看书目");
+  exp.onclick=()=>{card.classList.toggle("open"); exp.textContent=card.classList.contains("open")?"收起书目":"查看书目";};
+  card.appendChild(booksWrap);
+  card.appendChild(exp);
+  return card;
+}
+
+function adminCardRefresh(s,st){
+  const card=document.querySelector('.stu-card[data-id="'+CSS.escape(s.id)+'"]');
+  if(card){ const fresh=adminCard(s,st); card.replaceWith(fresh); }
+}
+
+function renderAdminList(){
+  const st=adminState();
+  renderAdminStats(st);
+  const list=$("#adminList"); list.innerHTML="";
+  const shown=filterRecs(st.recs,st);
+  if(!shown.length){list.appendChild(el("div","panel","未找到符合条件的学生")); return;}
+  shown.forEach(s=>list.appendChild(adminCard(s,st)));
+}
+function renderAdmin(){ adminChips(); renderAdminList(); }
+
+$("#adminSearch").addEventListener("input",e=>{adminKw=e.target.value; renderAdminList();});
+$("#expandAllBtn").onclick=()=>{
+  allOpen=!allOpen;
+  $("#expandAllBtn").textContent=allOpen?"收起":"展开";
+  document.querySelectorAll(".stu-card").forEach(c=>c.classList.toggle("open",allOpen));
+  document.querySelectorAll(".stu-card .expand").forEach(b=>b.textContent=allOpen?"收起书目":"查看书目");
+};
+
+let editingId=null;
+function openEdit(id){
+  const s=studentRecords().find(x=>x.id===id); if(!s)return;
+  editingId=id;
+  $("#editOverlay").classList.add("show");
+  $("#editSub").textContent="正在编辑："+s.name+"（"+s.id+"），修改仅保存在本机，可用于纠错与加退订。";
+  $("#editName").value=s.name;
+  $("#editClass").value=s.class;
+  const box=$("#editBooks"); box.innerHTML="";
+  s.books.forEach((b,i)=>{
+    const li=el("div","book-item");
+    li.appendChild(el("span","idx",(i+1)+"."));
+    const cb=document.createElement("input"); cb.type="checkbox"; cb.className="cb"; cb.checked=true; cb.dataset.book=b;
+    const nm=el("span","nm",b);
+    li.appendChild(cb); li.appendChild(nm);
+    box.appendChild(li);
+  });
+  $("#editCustomBook").value="";
+}
+$("#cancelEditBtn").onclick=()=>{$("#editOverlay").classList.remove("show"); editingId=null;};
+$("#editOverlay").addEventListener("click",e=>{if(e.target.id==="editOverlay"){e.target.classList.remove("show");editingId=null;}});
+$("#addCustomBtn").onclick=()=>{
+  const v=$("#editCustomBook").value.trim(); if(!v){toast("请输入书名");return;}
+  const exists=[...document.querySelectorAll("#editBooks .cb")].some(cb=>cb.dataset.book===v);
+  if(exists){toast("该书名已在列表中");return;}
+  const li=el("div","book-item");
+  li.appendChild(el("span","idx","·"));
+  const cb=document.createElement("input"); cb.type="checkbox"; cb.className="cb"; cb.checked=true; cb.dataset.book=v;
+  const nm=el("span","nm",v);
+  li.appendChild(cb); li.appendChild(nm);
+  $("#editBooks").appendChild(li);
+  $("#editCustomBook").value="";
+};
+$("#saveEditBtn").onclick=()=>{
+  if(!editingId)return;
+  const name=$("#editName").value.trim(); const cls=$("#editClass").value.trim();
+  if(!name||!cls){toast("姓名与班级不能为空");return;}
+  const books=[...document.querySelectorAll("#editBooks .cb")].filter(cb=>cb.checked).map(cb=>cb.dataset.book);
+  const edits=getEdits();
+  edits[editingId]={name:name, class:cls, books:books};
+  setEdits(edits);
+  $("#editOverlay").classList.remove("show"); editingId=null;
+  renderAdmin(); toast("已保存修改");
+};
+$("#deleteStuBtn").onclick=()=>{
+  if(!editingId)return;
+  if(!confirm("确定从当前名单中删除该学生吗？此操作仅保存在本机浏览器，可通过「恢复默认」找回。"))return;
+  const edits=getEdits(); delete edits[editingId]; setEdits(edits);
+  $("#editOverlay").classList.remove("show"); editingId=null;
+  renderAdmin(); toast("已删除该生记录");
+};
+
+$("#exportBtn").onclick=()=>{
+  const st=adminState();
+  const data={edits:getEdits(), claims:{}, memos:{}, exportAt:new Date().toISOString()};
+  st.recs.forEach(s=>{data.claims[s.id]=st.claimMap[s.id]; data.memos[s.id]=lsGet(K_MEMO+s.id,[]);});
+  const blob=new Blob([JSON.stringify(data,null,1)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="教材发放记录_"+new Date().toLocaleDateString("zh-CN").replace(/\//g,"-")+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("已导出记录文件");
+};
+$("#importBtn").onclick=()=>$("#fileInput").click();
+$("#fileInput").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const d=JSON.parse(rd.result);
+      if(!d||typeof d!=="object")throw 0;
+      if(d.edits)setEdits(d.edits);
+      if(d.claims)Object.entries(d.claims).forEach(([id,arr])=>lsSet(K_CLAIM+id,arr||[]));
+      if(d.memos)Object.entries(d.memos).forEach(([id,arr])=>lsSet(K_MEMO+id,arr||[]));
+      renderAdmin(); toast("导入成功");
+    }catch(err){toast("导入失败：文件格式不正确");}
+  };
+  rd.readAsText(f);
+  e.target.value="";
+});
+$("#resetBtn").onclick=()=>{
+  if(!confirm("将清除本机全部勾选与编辑记录，恢复为原始书单。确认继续？"))return;
+  try{Object.keys(localStorage).filter(k=>k.startsWith("bq_")).forEach(k=>localStorage.removeItem(k));}catch(err){}
+  renderAdmin(); toast("已恢复默认数据");
+};
+$("#copySummaryBtn").onclick=()=>{
+  const st=adminState(); let done=0,names=[];
+  st.recs.forEach(s=>{const arr=st.claimMap[s.id]; if(claimCount(s,arr)>=s.books.length){done++;names.push(s.name);}});
+  const txt="通信2631 教材领取汇总：已领完 "+done+"/"+st.recs.length+" 人。已领完名单："+names.join("、")+(names.length?"。":"");
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(()=>toast("已复制汇总文本"),()=>toast(txt));}
+  else toast(txt);
+};
+
+(function(){
+  const last=lsGet(K_LAST,null);
+  if(last){
+    const rec=studentRecords().find(s=>s.name===last.name&&s.id===last.id);
+    if(rec){ $("#qName").value=last.name; $("#qId").value=last.id; doLogin(); }
+  }
+})();
+</script>
+</body>
+</html>
